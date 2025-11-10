@@ -1,0 +1,39 @@
+
+configurations {
+    ktlint
+}
+
+// From https://github.com/pinterest/ktlint/blob/master/README.md
+tasks.register('ktlint', JavaExec) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Check Kotlin code style."
+    mainClass.set("com.pinterest.ktlint.Main")
+    classpath = configurations.ktlint
+    args "src/**/*.kt", "--reporter=plain", "--reporter=checkstyle,output=${buildDir}/reports/ktlint/ktlint.xml"
+
+    //  --disabled_rules=filename ==> no check of filename
+    // see https://github.com/pinterest/ktlint#usage for more
+}
+
+tasks.register("ktlintFormat", JavaExec) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Check Kotlin code style and format"
+    classpath = configurations.ktlint
+    mainClass.set("com.pinterest.ktlint.Main")
+    jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+    // see https://pinterest.github.io/ktlint/install/cli/#command-line-usage for more information
+    args(
+            "-F",
+            "src/**/*.kt",
+            "**.kts",
+    )
+}
+
+check.dependsOn 'ktlint'
+
+dependencies {
+    // ktlint version
+    ktlint(libs.ktlint.cli)
+}
+
+

@@ -1,0 +1,16 @@
+
+def localPropertiesFile = rootProject.file("local.properties")
+def localProperties = new Properties()
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { stream ->
+        localProperties.load(stream)
+    }
+}
+
+android {
+    defaultConfig {
+        def baseUrl = localProperties.getProperty("BASE_URL", "")
+        buildConfigField "String", "BASE_URL", "\"${baseUrl}\""
+    }
+}
