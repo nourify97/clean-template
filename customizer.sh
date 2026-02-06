@@ -155,14 +155,117 @@ rm -rf .idea
 rm -rf .kotlin
 
 echo ""
-echo -e "${YELLOW}Step 9: Removing git history and customizer script...${NC}"
+echo -e "${YELLOW}Step 9: Creating .gitignore...${NC}"
+
+cat > .gitignore << 'GITIGNORE'
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Android Studio
+*.iml
+.idea/
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild/
+.cxx/
+
+# Google Services
+google-services.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Captures
+/captures
+GITIGNORE
+
+echo ""
+echo -e "${YELLOW}Step 10: Creating README.md...${NC}"
+
+cat > README.md << README
+# $APP_NAME
+
+Android application built with Clean Architecture.
+
+## Tech Stack
+
+- **Language:** Kotlin
+- **UI:** Jetpack Compose
+- **Architecture:** MVVM + Clean Architecture
+- **DI:** Hilt
+- **Networking:** Retrofit
+- **Local DB:** Room
+- **Navigation:** Compose Navigation
+
+## Project Structure
+
+\`\`\`
+$NEW_PACKAGE
+├── core/di/          # Dependency injection modules
+├── data/
+│   ├── dto/          # Data transfer objects
+│   ├── local/db/     # Room database, DAOs, entities
+│   ├── mappers/      # Data <-> Domain mappers
+│   ├── remote/api/   # Retrofit API service
+│   └── repositories/ # Repository implementations
+├── domain/
+│   ├── models/       # Domain models
+│   ├── repositories/ # Repository interfaces
+│   └── usecases/     # Use cases
+└── ui/
+    ├── navigation/   # Nav graph & destinations
+    ├── screens/      # Screen composables & ViewModels
+    └── theme/        # Color, Theme, Typography
+\`\`\`
+
+## Getting Started
+
+1. Open the project in Android Studio
+2. Let Gradle sync
+3. Build and run
+README
+
+echo ""
+echo -e "${YELLOW}Step 11: Removing git history and customizer script...${NC}"
 
 # Remove git history and this script for fresh start
 rm -rf .git
 rm -f customizer.sh
 
 echo ""
-echo -e "${YELLOW}Step 10: Renaming project folder...${NC}"
+echo -e "${YELLOW}Step 12: Renaming project folder...${NC}"
 
 # Rename the folder if needed
 if [[ "$CURRENT_FOLDER" != "$NEW_FOLDER" ]]; then
