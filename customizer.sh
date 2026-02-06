@@ -5,11 +5,6 @@
 #
 # IMPORTANT: Run this script BEFORE opening the project in Android Studio!
 #
-# This script customizes the template for a new project by:
-# - Renaming the package from com.nourify.template to your package
-# - Renaming the app name
-# - Updating all related configurations
-#
 
 set -e
 
@@ -21,13 +16,9 @@ NC='\033[0m' # No Color
 
 # Check arguments
 if [[ $# -lt 2 ]]; then
-    echo -e "${YELLOW}Usage: bash customizer.sh <new.package.name> <AppName>${NC}"
+    echo -e "${YELLOW}Usage: bash customizer.sh <package.name> <AppName>${NC}"
     echo ""
     echo "Example: bash customizer.sh nl.coffeeit.heko Heko"
-    echo ""
-    echo "Arguments:"
-    echo "  <new.package.name>  The new package name (e.g., nl.coffeeit.heko)"
-    echo "  <AppName>           The new app name (e.g., Heko)"
     echo ""
     echo -e "${RED}IMPORTANT: Run this BEFORE opening the project in Android Studio!${NC}"
     exit 2
@@ -35,6 +26,9 @@ fi
 
 NEW_PACKAGE=$1
 APP_NAME=$2
+
+# Default BASE_URL for testing
+BASE_URL="https://jsonplaceholder.typicode.com/"
 
 # Current package info
 OLD_PACKAGE="com.nourify.template"
@@ -44,6 +38,12 @@ NEW_SUBDIR=${NEW_PACKAGE//.//} # Replaces . with /
 # Derived names
 PROJECT_NAME=$(echo "$APP_NAME" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
 THEME_NAME=$(echo "$APP_NAME" | sed 's/[^a-zA-Z0-9]//g')
+
+# Store folder paths for later renaming
+CURRENT_DIR=$(pwd)
+PARENT_DIR=$(dirname "$CURRENT_DIR")
+CURRENT_FOLDER=$(basename "$CURRENT_DIR")
+NEW_FOLDER="$PROJECT_NAME"
 
 # Validate package name
 if [[ ! $NEW_PACKAGE =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$ ]]; then
@@ -63,6 +63,7 @@ echo -e "  Package:      ${YELLOW}$OLD_PACKAGE${NC} -> ${GREEN}$NEW_PACKAGE${NC}
 echo -e "  App name:     ${YELLOW}template${NC} -> ${GREEN}$APP_NAME${NC}"
 echo -e "  Theme:        ${YELLOW}Theme.Template${NC} -> ${GREEN}Theme.$THEME_NAME${NC}"
 echo -e "  Project name: ${YELLOW}template${NC} -> ${GREEN}$PROJECT_NAME${NC}"
+echo -e "  Folder:       ${YELLOW}$CURRENT_FOLDER${NC} -> ${GREEN}$NEW_FOLDER${NC}"
 echo ""
 
 # Confirm before proceeding
@@ -76,7 +77,7 @@ fi
 echo ""
 echo -e "${YELLOW}Step 1: Moving files to new package structure...${NC}"
 
-# Move files to new package directories using the same pattern as the reference script
+# Move files to new package directories
 for n in $(find . -type d \( -path '*/src/androidTest' -or -path '*/src/main' -or -path '*/src/test' \) )
 do
     if [[ -d "$n/java/$OLD_SUBDIR" ]]; then
@@ -123,7 +124,22 @@ echo -e "${YELLOW}Step 6: Updating settings.gradle.kts project name...${NC}"
 sed -i.bak "s/rootProject.name = \".*\"/rootProject.name = \"$PROJECT_NAME\"/g" settings.gradle.kts
 
 echo ""
-echo -e "${YELLOW}Step 7: Cleaning up...${NC}"
+echo -e "${YELLOW}Step 7: Configuring local.properties...${NC}"
+
+# Create local.properties with SDK path and BASE_URL
+cat > local.properties << EOF
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+sdk.dir=$HOME/Library/Android/sdk
+BASE_URL=$BASE_URL
+EOF
+
+echo "  BASE_URL set to: $BASE_URL"
+
+echo ""
+echo -e "${YELLOW}Step 8: Cleaning up...${NC}"
 
 # Remove backup files created by sed
 find . -name "*.bak" -type f -delete
@@ -136,22 +152,42 @@ rm -rf .idea
 rm -rf .kotlin
 
 echo ""
-echo -e "${YELLOW}Step 8: Removing git history and customizer script...${NC}"
+echo -e "${YELLOW}Step 9: Removing git history and customizer script...${NC}"
 
 # Remove git history and this script for fresh start
 rm -rf .git
 rm -f customizer.sh
 
 echo ""
+echo -e "${YELLOW}Step 10: Renaming project folder...${NC}"
+
+# Rename the folder if needed
+if [[ "$CURRENT_FOLDER" != "$NEW_FOLDER" ]]; then
+    if [[ -d "$PARENT_DIR/$NEW_FOLDER" ]]; then
+        echo -e "${RED}  Warning: Folder '$NEW_FOLDER' already exists. Skipping rename.${NC}"
+        echo -e "  You can manually rename: mv '$CURRENT_DIR' '$PARENT_DIR/$NEW_FOLDER'"
+    else
+        cd "$PARENT_DIR"
+        mv "$CURRENT_FOLDER" "$NEW_FOLDER"
+        echo -e "${GREEN}  Folder renamed to: $NEW_FOLDER${NC}"
+        CURRENT_DIR="$PARENT_DIR/$NEW_FOLDER"
+    fi
+else
+    echo "  Folder name already matches: $NEW_FOLDER"
+fi
+
+echo ""
 echo -e "${GREEN}============================================${NC}"
 echo -e "${GREEN}            Customization Complete!         ${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
+echo -e "Project location: ${GREEN}$CURRENT_DIR${NC}"
+echo ""
 echo -e "Next steps:"
-echo -e "  1. ${YELLOW}Rename the folder${NC} (optional): mv ../$(basename "$(pwd)") ../$PROJECT_NAME"
-echo -e "  2. ${YELLOW}Open in Android Studio${NC} and let it sync"
-echo -e "  3. ${YELLOW}Update local.properties${NC} with your BASE_URL"
-echo -e "  4. ${YELLOW}Initialize git${NC}: git init && git add . && git commit -m 'Initial commit'"
-echo -e "  5. ${YELLOW}Build and run${NC} to verify everything works"
+echo -e "  1. ${YELLOW}Open in Android Studio${NC} and let it sync"
+echo -e "  2. ${YELLOW}Initialize git${NC}:"
+echo -e "     cd $CURRENT_DIR"
+echo -e "     git init && git add . && git commit -m 'Initial commit'"
+echo -e "  3. ${YELLOW}Build and run${NC} to verify everything works"
 echo ""
 echo -e "${GREEN}Happy coding!${NC}"
