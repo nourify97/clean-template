@@ -99,6 +99,9 @@ echo -e "${YELLOW}Step 2: Updating package declarations in Kotlin files...${NC}"
 find ./ -type f -name "*.kt" -exec sed -i.bak "s/package $OLD_PACKAGE/package $NEW_PACKAGE/g" {} \;
 find ./ -type f -name "*.kt" -exec sed -i.bak "s/import $OLD_PACKAGE/import $NEW_PACKAGE/g" {} \;
 
+# Update string literals (e.g., @ComponentScan annotation)
+find ./ -type f -name "*.kt" -exec sed -i.bak "s/\"$OLD_PACKAGE\"/\"$NEW_PACKAGE\"/g" {} \;
+
 echo ""
 echo -e "${YELLOW}Step 3: Updating Gradle files...${NC}"
 
