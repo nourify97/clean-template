@@ -14,3 +14,23 @@ android {
         buildConfigField "String", "BASE_URL", "\"${baseUrl}\""
     }
 }
+
+// Signing configuration (reads from local.properties if available)
+def storeFilePath = localProperties.getProperty("STORE_FILE", "")
+if (!storeFilePath.isEmpty()) {
+    android {
+        signingConfigs {
+            create("release") {
+                storeFile file(storeFilePath)
+                storePassword localProperties.getProperty("STORE_PASSWORD", "")
+                keyAlias localProperties.getProperty("KEY_ALIAS", "")
+                keyPassword localProperties.getProperty("KEY_PASSWORD", "")
+            }
+        }
+        buildTypes {
+            release {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}

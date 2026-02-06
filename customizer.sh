@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Template Customizer Script
-# Usage: bash customizer.sh com.company.myapp MyApp
+# Usage: bash customizer.sh com.company.myapp MyApp [--signing]
 #
 # IMPORTANT: Run this script BEFORE opening the project in Android Studio!
 #
@@ -16,9 +16,10 @@ NC='\033[0m' # No Color
 
 # Check arguments
 if [[ $# -lt 2 ]]; then
-    echo -e "${YELLOW}Usage: bash customizer.sh <package.name> <AppName>${NC}"
+    echo -e "${YELLOW}Usage: bash customizer.sh <package.name> <AppName> [--signing]${NC}"
     echo ""
     echo "Example: bash customizer.sh nl.coffeeit.heko Heko"
+    echo "Example: bash customizer.sh nl.coffeeit.heko Heko --signing"
     echo ""
     echo -e "${RED}IMPORTANT: Run this BEFORE opening the project in Android Studio!${NC}"
     exit 2
@@ -26,6 +27,14 @@ fi
 
 NEW_PACKAGE=$1
 APP_NAME=$2
+
+# Check for --signing flag
+ENABLE_SIGNING=false
+for arg in "${@:3}"; do
+    if [[ "$arg" == "--signing" ]]; then
+        ENABLE_SIGNING=true
+    fi
+done
 
 # Default BASE_URL for testing
 BASE_URL="https://jsonplaceholder.typicode.com/"
@@ -64,6 +73,11 @@ echo -e "  App name:     ${YELLOW}template${NC} -> ${GREEN}$APP_NAME${NC}"
 echo -e "  Theme:        ${YELLOW}Theme.Template${NC} -> ${GREEN}Theme.$THEME_NAME${NC}"
 echo -e "  Project name: ${YELLOW}template${NC} -> ${GREEN}$PROJECT_NAME${NC}"
 echo -e "  Folder:       ${YELLOW}$CURRENT_FOLDER${NC} -> ${GREEN}$NEW_FOLDER${NC}"
+if [[ "$ENABLE_SIGNING" == true ]]; then
+    echo -e "  Signing:      ${GREEN}Enabled${NC} (will generate release keystore)"
+else
+    echo -e "  Signing:      ${YELLOW}Disabled${NC} (use --signing to enable)"
+fi
 echo ""
 
 # Confirm before proceeding
@@ -74,8 +88,10 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+STEP=1
+
 echo ""
-echo -e "${YELLOW}Step 1: Moving files to new package structure...${NC}"
+echo -e "${YELLOW}Step $STEP: Moving files to new package structure...${NC}"
 
 # Move files to new package directories
 for n in $(find . -type d \( -path '*/src/androidTest' -or -path '*/src/main' -or -path '*/src/test' \) )
@@ -92,8 +108,9 @@ do
     fi
 done
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 2: Updating package declarations in Kotlin files...${NC}"
+echo -e "${YELLOW}Step $STEP: Updating package declarations in Kotlin files...${NC}"
 
 # Update package and import statements in Kotlin files
 find ./ -type f -name "*.kt" -exec sed -i.bak "s/package $OLD_PACKAGE/package $NEW_PACKAGE/g" {} \;
@@ -102,32 +119,37 @@ find ./ -type f -name "*.kt" -exec sed -i.bak "s/import $OLD_PACKAGE/import $NEW
 # Update string literals (e.g., @ComponentScan annotation)
 find ./ -type f -name "*.kt" -exec sed -i.bak "s/\"$OLD_PACKAGE\"/\"$NEW_PACKAGE\"/g" {} \;
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 3: Updating Gradle files...${NC}"
+echo -e "${YELLOW}Step $STEP: Updating Gradle files...${NC}"
 
 # Update build.gradle.kts files
 find ./ -type f -name "*.kts" -exec sed -i.bak "s/$OLD_PACKAGE/$NEW_PACKAGE/g" {} \;
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 4: Updating app name in resources...${NC}"
+echo -e "${YELLOW}Step $STEP: Updating app name in resources...${NC}"
 
 # Update strings.xml
 sed -i.bak "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">$APP_NAME<\/string>/g" app/src/main/res/values/strings.xml
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 5: Updating theme name...${NC}"
+echo -e "${YELLOW}Step $STEP: Updating theme name...${NC}"
 
 # Update theme references in xml and kt files
 find ./ -type f \( -name "*.xml" -o -name "*.kt" \) -exec sed -i.bak "s/Theme\.Template/Theme.$THEME_NAME/g" {} \;
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 6: Updating settings.gradle.kts project name...${NC}"
+echo -e "${YELLOW}Step $STEP: Updating settings.gradle.kts project name...${NC}"
 
 # Update project name in settings.gradle.kts
 sed -i.bak "s/rootProject.name = \".*\"/rootProject.name = \"$PROJECT_NAME\"/g" settings.gradle.kts
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 7: Configuring local.properties...${NC}"
+echo -e "${YELLOW}Step $STEP: Configuring local.properties...${NC}"
 
 # Create local.properties with SDK path and BASE_URL
 cat > local.properties << EOF
@@ -141,8 +163,110 @@ EOF
 
 echo "  BASE_URL set to: $BASE_URL"
 
+# Signing key generation (optional)
+if [[ "$ENABLE_SIGNING" == true ]]; then
+    STEP=$((STEP + 1))
+    echo ""
+    echo -e "${YELLOW}Step $STEP: Generating signing key...${NC}"
+
+    # Check keytool is available
+    if ! command -v keytool &> /dev/null; then
+        echo -e "${RED}Error: keytool not found. Make sure JDK is installed and on your PATH.${NC}"
+        exit 1
+    fi
+
+    KEYSTORE_DIR="$HOME/.android/keystores"
+    KEYSTORE_FILE="$KEYSTORE_DIR/${PROJECT_NAME}-release.jks"
+
+    # Prompt for signing details
+    echo ""
+    read -p "  Key alias [$PROJECT_NAME-key]: " KEY_ALIAS
+    KEY_ALIAS=${KEY_ALIAS:-"$PROJECT_NAME-key"}
+
+    while true; do
+        read -s -p "  Store password (min 6 chars): " STORE_PASSWORD
+        echo
+        if [[ ${#STORE_PASSWORD} -lt 6 ]]; then
+            echo -e "  ${RED}Password must be at least 6 characters.${NC}"
+            continue
+        fi
+        read -s -p "  Confirm store password: " STORE_PASSWORD_CONFIRM
+        echo
+        if [[ "$STORE_PASSWORD" != "$STORE_PASSWORD_CONFIRM" ]]; then
+            echo -e "  ${RED}Passwords do not match. Try again.${NC}"
+            continue
+        fi
+        break
+    done
+
+    while true; do
+        read -s -p "  Key password (min 6 chars): " KEY_PASSWORD
+        echo
+        if [[ ${#KEY_PASSWORD} -lt 6 ]]; then
+            echo -e "  ${RED}Password must be at least 6 characters.${NC}"
+            continue
+        fi
+        read -s -p "  Confirm key password: " KEY_PASSWORD_CONFIRM
+        echo
+        if [[ "$KEY_PASSWORD" != "$KEY_PASSWORD_CONFIRM" ]]; then
+            echo -e "  ${RED}Passwords do not match. Try again.${NC}"
+            continue
+        fi
+        break
+    done
+
+    read -p "  Organization [$APP_NAME]: " KEY_ORG
+    KEY_ORG=${KEY_ORG:-"$APP_NAME"}
+
+    read -p "  Country code [US]: " KEY_COUNTRY
+    KEY_COUNTRY=${KEY_COUNTRY:-"US"}
+
+    # Create keystores directory
+    mkdir -p "$KEYSTORE_DIR"
+
+    # Check if keystore already exists
+    if [[ -f "$KEYSTORE_FILE" ]]; then
+        echo -e "  ${RED}Warning: Keystore already exists at $KEYSTORE_FILE${NC}"
+        read -p "  Overwrite? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "  ${YELLOW}Skipping keystore generation. Using existing keystore.${NC}"
+        else
+            rm -f "$KEYSTORE_FILE"
+        fi
+    fi
+
+    # Generate keystore if it doesn't exist (or was just deleted)
+    if [[ ! -f "$KEYSTORE_FILE" ]]; then
+        echo ""
+        echo "  Generating keystore..."
+        keytool -genkeypair -v \
+            -keystore "$KEYSTORE_FILE" \
+            -alias "$KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -dname "CN=$APP_NAME, O=$KEY_ORG, C=$KEY_COUNTRY"
+
+        echo -e "  ${GREEN}Keystore created at: $KEYSTORE_FILE${NC}"
+    fi
+
+    # Append signing properties to local.properties
+    cat >> local.properties << EOF
+STORE_FILE=$KEYSTORE_FILE
+STORE_PASSWORD=$STORE_PASSWORD
+KEY_ALIAS=$KEY_ALIAS
+KEY_PASSWORD=$KEY_PASSWORD
+EOF
+
+    echo -e "  ${GREEN}Signing properties added to local.properties${NC}"
+fi
+
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 8: Cleaning up...${NC}"
+echo -e "${YELLOW}Step $STEP: Cleaning up...${NC}"
 
 # Remove backup files created by sed
 find . -name "*.bak" -type f -delete
@@ -154,8 +278,9 @@ rm -rf .gradle
 rm -rf .idea
 rm -rf .kotlin
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 9: Creating .gitignore...${NC}"
+echo -e "${YELLOW}Step $STEP: Creating .gitignore...${NC}"
 
 cat > .gitignore << 'GITIGNORE'
 # Built application files
@@ -211,8 +336,9 @@ Thumbs.db
 /captures
 GITIGNORE
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 10: Creating README.md...${NC}"
+echo -e "${YELLOW}Step $STEP: Creating README.md...${NC}"
 
 cat > README.md << README
 # $APP_NAME
@@ -257,15 +383,17 @@ $NEW_PACKAGE
 3. Build and run
 README
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 11: Removing git history and customizer script...${NC}"
+echo -e "${YELLOW}Step $STEP: Removing git history and customizer script...${NC}"
 
 # Remove git history and this script for fresh start
 rm -rf .git
 rm -f customizer.sh
 
+STEP=$((STEP + 1))
 echo ""
-echo -e "${YELLOW}Step 12: Renaming project folder...${NC}"
+echo -e "${YELLOW}Step $STEP: Renaming project folder...${NC}"
 
 # Rename the folder if needed
 if [[ "$CURRENT_FOLDER" != "$NEW_FOLDER" ]]; then
@@ -289,6 +417,11 @@ echo -e "${GREEN}============================================${NC}"
 echo ""
 echo -e "Project location: ${GREEN}$CURRENT_DIR${NC}"
 echo ""
+if [[ "$ENABLE_SIGNING" == true ]]; then
+    echo -e "Keystore location: ${GREEN}$KEYSTORE_FILE${NC}"
+    echo -e "Key alias:         ${GREEN}$KEY_ALIAS${NC}"
+    echo ""
+fi
 echo -e "Next steps:"
 echo -e "  1. ${YELLOW}Open in Android Studio${NC} and let it sync"
 echo -e "  2. ${YELLOW}Initialize git${NC}:"
