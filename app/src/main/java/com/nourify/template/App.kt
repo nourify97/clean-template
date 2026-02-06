@@ -2,8 +2,6 @@ package com.nourify.template
 
 import android.app.Application
 import com.nourify.template.core.di.AppModule
-import com.nourify.template.core.di.DatabaseModule
-import com.nourify.template.core.di.NetworkModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -15,13 +13,7 @@ class App : Application() {
         startKoin {
             androidLogger()
             androidContext(this@App)
-            modules(
-                listOf(
-                    AppModule().module,
-                    NetworkModule().module,
-                    DatabaseModule().module,
-                ),
-            )
+            modules(AppModule().module)
         }
     }
 }
