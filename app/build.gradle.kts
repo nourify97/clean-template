@@ -6,6 +6,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    // Uncomment when you add google-services.json to the app/ folder
+    // alias(libs.plugins.google.services)
+    // alias(libs.plugins.firebase.crashlytics.gradle)
 }
 
 apply(from = rootProject.file("gradle/ktlint.gradle"))
@@ -79,6 +82,11 @@ dependencies {
     ksp(libs.koin.ksp.compiler)
 
     implementation(libs.kotlinx.serialization.json)
+
+    // Firebase - Uncomment when you add google-services.json
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.analytics)
+    // implementation(libs.firebase.crashlytics)
 
     implementation(libs.navigation.compose)
     implementation(libs.androidx.core.ktx)
