@@ -135,6 +135,16 @@ sed -i.bak "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">$
 
 STEP=$((STEP + 1))
 echo ""
+echo -e "${YELLOW}Step $STEP: Updating app name in product flavors...${NC}"
+
+# Update product flavor app names in build.gradle.kts
+sed -i.bak "s/resValue(\"string\", \"app_name\", \"Template Dev\")/resValue(\"string\", \"app_name\", \"$APP_NAME Dev\")/g" app/build.gradle.kts
+sed -i.bak "s/resValue(\"string\", \"app_name\", \"Template Tst\")/resValue(\"string\", \"app_name\", \"$APP_NAME Tst\")/g" app/build.gradle.kts
+sed -i.bak "s/resValue(\"string\", \"app_name\", \"Template Acc\")/resValue(\"string\", \"app_name\", \"$APP_NAME Acc\")/g" app/build.gradle.kts
+sed -i.bak "s/resValue(\"string\", \"app_name\", \"Template\")/resValue(\"string\", \"app_name\", \"$APP_NAME\")/g" app/build.gradle.kts
+
+STEP=$((STEP + 1))
+echo ""
 echo -e "${YELLOW}Step $STEP: Updating theme name...${NC}"
 
 # Update theme references in xml and kt files
@@ -151,17 +161,24 @@ STEP=$((STEP + 1))
 echo ""
 echo -e "${YELLOW}Step $STEP: Configuring local.properties...${NC}"
 
-# Create local.properties with SDK path and BASE_URL
+# Create local.properties with SDK path and environment-specific BASE_URLs
 cat > local.properties << EOF
 ## This file must *NOT* be checked into Version Control Systems,
 # as it contains information specific to your local configuration.
 #
 # Location of the SDK. This is only used by Gradle.
 sdk.dir=$HOME/Library/Android/sdk
+
+# Environment-specific BASE URLs
 BASE_URL=$BASE_URL
+BASE_URL_DEV=$BASE_URL
+BASE_URL_TST=$BASE_URL
+BASE_URL_ACC=$BASE_URL
+BASE_URL_PROD=$BASE_URL
 EOF
 
-echo "  BASE_URL set to: $BASE_URL"
+echo "  Environment-specific BASE URLs configured (all set to: $BASE_URL)"
+echo "  You can customize each environment's URL in local.properties if needed"
 
 # Signing key generation (optional)
 if [[ "$ENABLE_SIGNING" == true ]]; then

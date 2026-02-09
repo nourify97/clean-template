@@ -13,6 +13,14 @@ android {
         def baseUrl = localProperties.getProperty("BASE_URL", "")
         buildConfigField "String", "BASE_URL", "\"${baseUrl}\""
     }
+
+    // Configure BASE_URL for each flavor
+    productFlavors.configureEach { flavor ->
+        def flavorBaseUrl = localProperties.getProperty("BASE_URL_${flavor.name.toUpperCase()}", "")
+        if (!flavorBaseUrl.isEmpty()) {
+            flavor.buildConfigField "String", "BASE_URL", "\"${flavorBaseUrl}\""
+        }
+    }
 }
 
 // Signing configuration (reads from local.properties if available)

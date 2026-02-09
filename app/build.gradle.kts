@@ -30,6 +30,36 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "env"
+
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Template Dev")
+        }
+
+        create("tst") {
+            dimension = "env"
+            applicationIdSuffix = ".tst"
+            versionNameSuffix = "-tst"
+            resValue("string", "app_name", "Template Tst")
+        }
+
+        create("acc") {
+            dimension = "env"
+            applicationIdSuffix = ".acc"
+            versionNameSuffix = "-acc"
+            resValue("string", "app_name", "Template Acc")
+        }
+
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "Template")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -84,7 +114,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     // Firebase - Uncomment when you add google-services.json
-    // implementation(platform(libs.firebase.bom))
     // implementation(libs.firebase.analytics)
     // implementation(libs.firebase.crashlytics)
 
