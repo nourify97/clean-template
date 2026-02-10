@@ -61,8 +61,23 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            manifestPlaceholders.putAll(
+                mapOf(
+                    "analyticsEnabled" to false,
+                    "crashlyticsEnabled" to false,
+                ),
+            )
+        }
         release {
             isMinifyEnabled = false
+            manifestPlaceholders.putAll(
+                mapOf(
+                    "analyticsEnabled" to true,
+                    "crashlyticsEnabled" to true,
+                ),
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
